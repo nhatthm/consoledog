@@ -104,6 +104,20 @@ func (m *Manager) isConsoleOutput(expected *godog.DocString) error {
 	return t.LastError()
 }
 
+// WithStarter adds a Starter to Manager.
+func (m *Manager) WithStarter(s Starter) *Manager {
+	m.starters = append(m.starters, s)
+
+	return m
+}
+
+// WithCloser adds a Closer to Manager.
+func (m *Manager) WithCloser(c Closer) *Manager {
+	m.closers = append(m.closers, c)
+
+	return m
+}
+
 // New initiates a new console Manager.
 func New(t *testing.T, options ...Option) *Manager { // nolint: thelper
 	m := &Manager{
@@ -120,13 +134,13 @@ func New(t *testing.T, options ...Option) *Manager { // nolint: thelper
 // WithStarter adds a Starter to Manager.
 func WithStarter(s Starter) Option {
 	return func(m *Manager) {
-		m.starters = append(m.starters, s)
+		m.WithStarter(s)
 	}
 }
 
 // WithCloser adds a Closer to Manager.
 func WithCloser(c Closer) Option {
 	return func(m *Manager) {
-		m.closers = append(m.closers, c)
+		m.WithCloser(c)
 	}
 }
