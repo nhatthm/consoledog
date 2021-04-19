@@ -9,20 +9,28 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type testingT struct {
+// TestingT is an interface wrapper around *testing.T.
+type TestingT interface {
+	Errorf(format string, args ...interface{})
+	FailNow()
+	Log(args ...interface{})
+	Logf(format string, args ...interface{})
+}
+
+type tError struct {
 	err error
 }
 
-func (t *testingT) Errorf(format string, args ...interface{}) {
+func (t *tError) Errorf(format string, args ...interface{}) {
 	t.err = fmt.Errorf(format, args...) // nolint: goerr113
 }
 
-func (t *testingT) LastError() error {
+func (t *tError) LastError() error {
 	return t.err
 }
 
-func t() *testingT {
-	return &testingT{}
+func teeError() *tError {
+	return &tError{}
 }
 
 // AssertState asserts console state.

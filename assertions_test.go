@@ -9,8 +9,8 @@ import (
 func TestTestingT_LastError(t *testing.T) {
 	t.Parallel()
 
-	newT := &testingT{}
-	newT.Errorf("error: %s", "unknown")
+	tee := teeError()
+	tee.Errorf("error: %s", "unknown")
 
-	assert.EqualError(t, newT.LastError(), `error: unknown`)
+	assert.EqualError(t, tee.LastError(), `error: unknown`)
 }

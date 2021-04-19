@@ -1,7 +1,6 @@
 package consoledog
 
 import (
-	"testing"
 	"time"
 
 	"github.com/Netflix/go-expect"
@@ -21,7 +20,7 @@ type Option func(m *Manager)
 
 // Manager manages console and its state.
 type Manager struct {
-	test *testing.T
+	test TestingT
 
 	console *expect.Console
 	state   *vt10x.State
@@ -98,7 +97,7 @@ func (m *Manager) Flush() {
 func (m *Manager) isConsoleOutput(expected *godog.DocString) error {
 	m.Flush()
 
-	t := t()
+	t := teeError()
 	AssertState(t, m.state, expected.Content)
 
 	return t.LastError()
@@ -119,7 +118,7 @@ func (m *Manager) WithCloser(c Closer) *Manager {
 }
 
 // New initiates a new console Manager.
-func New(t *testing.T, options ...Option) *Manager { // nolint: thelper
+func New(t TestingT, options ...Option) *Manager {
 	m := &Manager{
 		test: t,
 	}
