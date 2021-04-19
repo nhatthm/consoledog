@@ -53,6 +53,7 @@ func (m *Manager) RegisterContext(ctx *godog.ScenarioContext) {
 	})
 
 	ctx.Step(`console output is:`, m.isConsoleOutput)
+	ctx.Step(`console output matches:`, m.matchConsoleOutput)
 }
 
 func (m *Manager) session() *session {
@@ -125,6 +126,15 @@ func (m *Manager) isConsoleOutput(expected *godog.DocString) error {
 
 	t := teeError()
 	AssertState(t, m.session().state, expected.Content)
+
+	return t.LastError()
+}
+
+func (m *Manager) matchConsoleOutput(expected *godog.DocString) error {
+	m.Flush()
+
+	t := teeError()
+	AssertStateRegex(t, m.session().state, expected.Content)
 
 	return t.LastError()
 }

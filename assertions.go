@@ -21,6 +21,8 @@ type tError struct {
 	err error
 }
 
+func (t *tError) Helper() {}
+
 func (t *tError) Errorf(format string, args ...interface{}) {
 	t.err = fmt.Errorf(format, args...) // nolint: goerr113
 }
@@ -42,6 +44,17 @@ func AssertState(t assert.TestingT, state *vt10x.State, expected string) bool {
 	actual := trimTailingSpaces(expect.StripTrailingEmptyLines(state.String()))
 
 	return assert.Equal(t, expected, actual)
+}
+
+// AssertStateRegex asserts console state.
+func AssertStateRegex(t assert.TestingT, state *vt10x.State, expected string) bool {
+	if h, ok := t.(tHelper); ok {
+		h.Helper()
+	}
+
+	actual := trimTailingSpaces(expect.StripTrailingEmptyLines(state.String()))
+
+	return assert.Regexp(t, expected, actual)
 }
 
 func trimTailingSpaces(out string) string {
