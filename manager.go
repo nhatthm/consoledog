@@ -1,6 +1,7 @@
 package consoledog
 
 import (
+	"sync"
 	"time"
 
 	"github.com/Netflix/go-expect"
@@ -18,16 +19,23 @@ type Closer func(sc *godog.Scenario)
 // Option configures Manager.
 type Option func(m *Manager)
 
-// Manager manages console and its state.
-type Manager struct {
-	test TestingT
-
+type session struct {
 	console *expect.Console
 	state   *vt10x.State
 	output  *Buffer
+}
+
+// Manager manages console and its state.
+type Manager struct {
+	sessions map[string]*session
+	current  string
 
 	starters []Starter
 	closers  []Closer
+
+	test TestingT
+
+	mu sync.Mutex
 }
 
 type tHelper interface {
@@ -47,32 +55,51 @@ func (m *Manager) RegisterContext(ctx *godog.ScenarioContext) {
 	ctx.Step(`console output is:`, m.isConsoleOutput)
 }
 
+func (m *Manager) session() *session {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	return m.sessions[m.current]
+}
+
 // NewConsole creates a new console.
 func (m *Manager) NewConsole(sc *godog.Scenario) (*expect.Console, *vt10x.State) {
-	if m.console != nil {
-		return m.console, m.state
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	sess := &session{}
+
+	if s, ok := m.sessions[sc.Id]; ok {
+		return s.console, s.state
 	}
 
 	m.test.Logf("Console: %s (#%s)\n", sc.Name, sc.Id)
 
-	m.output = new(Buffer)
+	sess.output = new(Buffer)
 
-	console, state, err := vt10x.NewVT10XConsole(expect.WithStdout(m.output))
+	console, state, err := vt10x.NewVT10XConsole(expect.WithStdout(sess.output))
 	require.NoError(m.test, err)
 
-	m.console = console
-	m.state = state
+	sess.console = console
+	sess.state = state
+
+	m.sessions[sc.Id] = sess
+	m.current = sc.Id
 
 	for _, fn := range m.starters {
-		fn(sc, console)
+		fn(sc, sess.console)
 	}
 
-	return console, state
+	return sess.console, sess.state
 }
 
 // CloseConsole closes the current console.
 func (m *Manager) CloseConsole(sc *godog.Scenario) {
-	if m.console == nil {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	sess, ok := m.sessions[sc.Id]
+	if !ok {
 		return
 	}
 
@@ -80,25 +107,24 @@ func (m *Manager) CloseConsole(sc *godog.Scenario) {
 		fn(sc)
 	}
 
-	m.test.Logf("Raw output: %q\n", m.output.String())
+	m.test.Logf("Raw output: %q\n", sess.output.String())
 	// Dump the terminal's screen.
-	m.test.Logf("State: \n%s\n", expect.StripTrailingEmptyLines(m.state.String()))
+	m.test.Logf("State: \n%s\n", expect.StripTrailingEmptyLines(sess.state.String()))
 
-	m.console = nil
-	m.state = nil
-	m.output = nil
+	delete(m.sessions, sc.Id)
+	m.current = ""
 }
 
 // Flush flushes console state.
 func (m *Manager) Flush() {
-	m.console.Expect(expect.EOF, expect.PTSClosed, expect.WithTimeout(10*time.Millisecond)) // nolint: errcheck, gosec
+	m.session().console.Expect(expect.EOF, expect.PTSClosed, expect.WithTimeout(10*time.Millisecond)) // nolint: errcheck, gosec
 }
 
 func (m *Manager) isConsoleOutput(expected *godog.DocString) error {
 	m.Flush()
 
 	t := teeError()
-	AssertState(t, m.state, expected.Content)
+	AssertState(t, m.session().state, expected.Content)
 
 	return t.LastError()
 }
@@ -120,7 +146,8 @@ func (m *Manager) WithCloser(c Closer) *Manager {
 // New initiates a new console Manager.
 func New(t TestingT, options ...Option) *Manager {
 	m := &Manager{
-		test: t,
+		test:     t,
+		sessions: make(map[string]*session),
 	}
 
 	for _, o := range options {
