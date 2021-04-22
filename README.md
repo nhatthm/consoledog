@@ -85,11 +85,62 @@ func TestIntegration(t *testing.T) {
 
 See more: [#Examples](#Examples)
 
+### Resize
+
+In case you want to resize the terminal (default is `80x100`) to avoid text wrapping, for example:
+
+```gherkin
+        Then console output is:
+        """
+        panic: could not build credentials provider option: unsupported credentials prov
+        ider
+        """
+```
+
+Use `consoledog.WithTermSize(cols, rows)` while initiating with `consoledog.New()`, for example:
+
+```go
+package mypackage
+
+import (
+    "testing"
+
+    "github.com/nhatthm/consoledog"
+)
+
+func TestIntegration(t *testing.T) {
+    // ...
+    m := consoledog.New(t, consoledog.WithTermSize(100, 100))
+    // ...
+}
+```
+
+Then your step will become:
+
+```gherkin
+        Then console output is:
+        """
+        panic: could not build credentials provider option: unsupported credentials provider
+        """
+```
+
 ## Steps
 
 ### `console output is:`
 
 Asserts the output of the console.
+
+For example:
+
+```gherkin
+    Scenario: Find all transaction in range with invalid format
+        When I run command "transactions -d --format invalid"
+
+        Then console output is:
+        """
+        panic: unknown output format
+        """
+```
 
 ## Examples
 
