@@ -1,5 +1,6 @@
 # Terminal Emulator for cucumber/godog
 
+[![GitHub Releases](https://img.shields.io/github/v/release/nhatthm/consoledog)](https://github.com/nhatthm/consoledog/releases/latest)
 [![Build Status](https://github.com/nhatthm/consoledog/actions/workflows/test.yaml/badge.svg)](https://github.com/nhatthm/consoledog/actions/workflows/test.yaml)
 [![codecov](https://codecov.io/gh/nhatthm/consoledog/branch/master/graph/badge.svg?token=eTdAgDE2vR)](https://codecov.io/gh/nhatthm/consoledog)
 [![Go Report Card](https://goreportcard.com/badge/github.com/nhatthm/consoledog)](https://goreportcard.com/report/github.com/nhatthm/consoledog)
