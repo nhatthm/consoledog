@@ -11,9 +11,12 @@ import (
 func TestManager(t *testing.T) {
 	t.Parallel()
 
-	m := consoledog.New(t, consoledog.WithStarter(func(sc *godog.Scenario, console *expect.Console) {
-		console.Write([]byte(`hello world`)) // nolint: errcheck, gosec
-	}))
+	m := consoledog.New(t,
+		consoledog.WithTermSize(80, 24),
+		consoledog.WithStarter(func(sc *godog.Scenario, console *expect.Console) {
+			console.Write([]byte(`hello world`)) // nolint: errcheck, gosec
+		}),
+	)
 
 	scenario := &godog.Scenario{}
 	_, state := m.NewConsole(scenario)

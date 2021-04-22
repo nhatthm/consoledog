@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/Netflix/go-expect"
+	"github.com/creack/pty"
 	"github.com/cucumber/godog"
 	"github.com/hinshun/vt10x"
 	"github.com/stretchr/testify/require"
@@ -29,6 +30,10 @@ type session struct {
 type Manager struct {
 	sessions map[string]*session
 	current  string
+
+	// Terminal size.
+	termCols int
+	termRows int
 
 	starters []Starter
 	closers  []Closer
@@ -77,12 +82,7 @@ func (m *Manager) NewConsole(sc *godog.Scenario) (*expect.Console, *vt10x.State)
 	m.test.Logf("Console: %s (#%s)\n", sc.Name, sc.Id)
 
 	sess.output = new(Buffer)
-
-	console, state, err := vt10x.NewVT10XConsole(expect.WithStdout(sess.output))
-	require.NoError(m.test, err)
-
-	sess.console = console
-	sess.state = state
+	sess.console, sess.state = newVT10XConsole(m.test, m.termCols, m.termCols, expect.WithStdout(sess.output))
 
 	m.sessions[sc.Id] = sess
 	m.current = sc.Id
@@ -156,8 +156,10 @@ func (m *Manager) WithCloser(c Closer) *Manager {
 // New initiates a new console Manager.
 func New(t TestingT, options ...Option) *Manager {
 	m := &Manager{
-		test:     t,
 		sessions: make(map[string]*session),
+		termCols: 80,
+		termRows: 100,
+		test:     t,
 	}
 
 	for _, o := range options {
@@ -179,4 +181,28 @@ func WithCloser(c Closer) Option {
 	return func(m *Manager) {
 		m.WithCloser(c)
 	}
+}
+
+// WithTermSize sets terminal size cols x rows. Default is 80 x 100.
+func WithTermSize(cols, rows int) Option {
+	return func(m *Manager) {
+		m.termCols = cols
+		m.termRows = rows
+	}
+}
+
+func newVT10XConsole(t TestingT, cols, rows int, opts ...expect.ConsoleOpt) (*expect.Console, *vt10x.State) {
+	ptm, pts, err := pty.Open()
+	require.NoError(t, err)
+
+	var state vt10x.State
+	term, err := vt10x.Create(&state, pts)
+	require.NoError(t, err)
+
+	term.Resize(cols, rows)
+
+	c, err := expect.NewConsole(append(opts, expect.WithStdin(ptm), expect.WithStdout(term), expect.WithCloser(pts, ptm, term))...)
+	require.NoError(t, err)
+
+	return c, &state
 }
