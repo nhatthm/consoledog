@@ -104,6 +104,8 @@ func (m *Manager) CloseConsole(sc *godog.Scenario) {
 		return
 	}
 
+	m.flushSession(sess)
+
 	for _, fn := range m.closers {
 		fn(sc)
 	}
@@ -116,9 +118,13 @@ func (m *Manager) CloseConsole(sc *godog.Scenario) {
 	m.current = ""
 }
 
+func (m *Manager) flushSession(s *session) {
+	s.console.Expect(expect.EOF, expect.PTSClosed, expect.WithTimeout(10*time.Millisecond)) // nolint: errcheck, gosec
+}
+
 // Flush flushes console state.
 func (m *Manager) Flush() {
-	m.session().console.Expect(expect.EOF, expect.PTSClosed, expect.WithTimeout(10*time.Millisecond)) // nolint: errcheck, gosec
+	m.flushSession(m.session())
 }
 
 func (m *Manager) isConsoleOutput(expected *godog.DocString) error {
