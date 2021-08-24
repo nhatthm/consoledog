@@ -1,6 +1,7 @@
 package consoledog
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -49,12 +50,16 @@ type tHelper interface {
 
 // RegisterContext register console Manager to test context.
 func (m *Manager) RegisterContext(ctx *godog.ScenarioContext) {
-	ctx.BeforeScenario(func(sc *godog.Scenario) {
+	ctx.Before(func(_ context.Context, sc *godog.Scenario) (context.Context, error) {
 		m.NewConsole(sc)
+
+		return nil, nil
 	})
 
-	ctx.AfterScenario(func(sc *godog.Scenario, _ error) {
+	ctx.After(func(_ context.Context, sc *godog.Scenario, _ error) (context.Context, error) {
 		m.CloseConsole(sc)
+
+		return nil, nil
 	})
 
 	ctx.Step(`console output is:`, m.isConsoleOutput)
