@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/Netflix/go-expect v0.0.0-20210722184520-ef0bf57d82b3
 	github.com/creack/pty v1.1.15
-	github.com/cucumber/godog v0.12.0
+	github.com/cucumber/godog v0.12.2
 	github.com/hinshun/vt10x v0.0.0-20180809195222-d55458df857c
 	github.com/stretchr/testify v1.7.0
 )
