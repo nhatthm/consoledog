@@ -7,7 +7,7 @@ require (
 	github.com/creack/pty v1.1.17
 	github.com/cucumber/godog v0.12.4
 	github.com/hinshun/vt10x v0.0.0-20180809195222-d55458df857c
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 )
 
 require (
