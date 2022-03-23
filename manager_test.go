@@ -5,6 +5,7 @@ import (
 
 	"github.com/Netflix/go-expect"
 	"github.com/cucumber/godog"
+
 	"github.com/nhatthm/consoledog"
 )
 
@@ -19,7 +20,7 @@ func TestManager(t *testing.T) {
 	)
 
 	scenario := &godog.Scenario{}
-	_, state := m.NewConsole(scenario)
+	_, terminal := m.NewConsole(scenario)
 
 	// New again does not affect the state.
 	_, _ = m.NewConsole(scenario)
@@ -28,7 +29,7 @@ func TestManager(t *testing.T) {
 
 	expected := `hello world`
 
-	consoledog.AssertState(t, state, expected)
+	consoledog.AssertState(t, terminal, expected)
 
 	m.CloseConsole(scenario)
 

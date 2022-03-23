@@ -36,23 +36,23 @@ func teeError() *tError {
 }
 
 // AssertState asserts console state.
-func AssertState(t assert.TestingT, state *vt10x.State, expected string) bool {
+func AssertState(t assert.TestingT, terminal vt10x.Terminal, expected string) bool {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
 	}
 
-	actual := trimTailingSpaces(expect.StripTrailingEmptyLines(state.String()))
+	actual := trimTailingSpaces(expect.StripTrailingEmptyLines(terminal.String()))
 
 	return assert.Equal(t, expected, actual)
 }
 
 // AssertStateRegex asserts console state.
-func AssertStateRegex(t assert.TestingT, state *vt10x.State, expected string) bool {
+func AssertStateRegex(t assert.TestingT, terminal vt10x.Terminal, expected string) bool {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
 	}
 
-	actual := trimTailingSpaces(expect.StripTrailingEmptyLines(state.String()))
+	actual := trimTailingSpaces(expect.StripTrailingEmptyLines(terminal.String()))
 
 	return assert.Regexp(t, expected, actual)
 }
