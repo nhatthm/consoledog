@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/Netflix/go-expect"
-	"github.com/creack/pty"
+	pseudotty "github.com/creack/pty"
 	"github.com/cucumber/godog"
 	"github.com/hinshun/vt10x"
 	"github.com/stretchr/testify/require"
@@ -22,9 +22,9 @@ type Closer func(sc *godog.Scenario)
 type Option func(m *Manager)
 
 type session struct {
-	console *expect.Console
-	state   *vt10x.State
-	output  *Buffer
+	console  *expect.Console
+	terminal vt10x.Terminal
+	output   *Buffer
 }
 
 // Manager manages console and its state.
@@ -74,20 +74,20 @@ func (m *Manager) session() *session {
 }
 
 // NewConsole creates a new console.
-func (m *Manager) NewConsole(sc *godog.Scenario) (*expect.Console, *vt10x.State) {
+func (m *Manager) NewConsole(sc *godog.Scenario) (*expect.Console, vt10x.Terminal) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	sess := &session{}
 
 	if s, ok := m.sessions[sc.Id]; ok {
-		return s.console, s.state
+		return s.console, s.terminal
 	}
 
 	m.test.Logf("Console: %s (#%s)\n", sc.Name, sc.Id)
 
 	sess.output = new(Buffer)
-	sess.console, sess.state = newVT10XConsole(m.test, m.termCols, m.termCols, expect.WithStdout(sess.output))
+	sess.console, sess.terminal = newVT10XConsole(m.test, m.termCols, m.termCols, expect.WithStdout(sess.output))
 
 	m.sessions[sc.Id] = sess
 	m.current = sc.Id
@@ -96,7 +96,7 @@ func (m *Manager) NewConsole(sc *godog.Scenario) (*expect.Console, *vt10x.State)
 		fn(sc, sess.console)
 	}
 
-	return sess.console, sess.state
+	return sess.console, sess.terminal
 }
 
 // CloseConsole closes the current console.
@@ -117,7 +117,7 @@ func (m *Manager) CloseConsole(sc *godog.Scenario) {
 
 	m.test.Logf("Raw output: %q\n", sess.output.String())
 	// Dump the terminal's screen.
-	m.test.Logf("State: \n%s\n", expect.StripTrailingEmptyLines(sess.state.String()))
+	m.test.Logf("State: \n%s\n", expect.StripTrailingEmptyLines(sess.terminal.String()))
 
 	delete(m.sessions, sc.Id)
 	m.current = ""
@@ -136,7 +136,7 @@ func (m *Manager) isConsoleOutput(expected *godog.DocString) error {
 	m.Flush()
 
 	t := teeError()
-	AssertState(t, m.session().state, expected.Content)
+	AssertState(t, m.session().terminal, expected.Content)
 
 	return t.LastError()
 }
@@ -145,7 +145,7 @@ func (m *Manager) matchConsoleOutput(expected *godog.DocString) error {
 	m.Flush()
 
 	t := teeError()
-	AssertStateRegex(t, m.session().state, expected.Content)
+	AssertStateRegex(t, m.session().terminal, expected.Content)
 
 	return t.LastError()
 }
@@ -202,18 +202,16 @@ func WithTermSize(cols, rows int) Option {
 	}
 }
 
-func newVT10XConsole(t TestingT, cols, rows int, opts ...expect.ConsoleOpt) (*expect.Console, *vt10x.State) {
-	ptm, pts, err := pty.Open()
+func newVT10XConsole(t TestingT, cols, rows int, opts ...expect.ConsoleOpt) (*expect.Console, vt10x.Terminal) {
+	pty, tty, err := pseudotty.Open()
 	require.NoError(t, err)
 
-	var state vt10x.State
-	term, err := vt10x.Create(&state, pts)
-	require.NoError(t, err)
+	term := vt10x.New(vt10x.WithWriter(tty))
 
 	term.Resize(cols, rows)
 
-	c, err := expect.NewConsole(append(opts, expect.WithStdin(ptm), expect.WithStdout(term), expect.WithCloser(pts, ptm, term))...)
+	c, err := expect.NewConsole(append(opts, expect.WithStdin(pty), expect.WithStdout(term), expect.WithCloser(pty, tty))...)
 	require.NoError(t, err)
 
-	return c, &state
+	return c, term
 }
