@@ -1,3 +1,5 @@
+> ⚠️ This package is deprecated, please use [go.nhat.io/consolesteps](https://github.com/nhatthm/consolesteps) instead.
+
 # Terminal Emulator for cucumber/godog
 
 [![GitHub Releases](https://img.shields.io/github/v/release/nhatthm/consoledog)](https://github.com/nhatthm/consoledog/releases/latest)

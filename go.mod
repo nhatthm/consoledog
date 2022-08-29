@@ -1,3 +1,4 @@
+// Deprecated: Use go.nhat.io/consolesteps instead.
 module github.com/nhatthm/consoledog
 
 go 1.17
